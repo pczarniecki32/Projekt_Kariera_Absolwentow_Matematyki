@@ -1,0 +1,200 @@
+---
+title: "Kariera Absolwentów Matematyki – Analiza Danych."
+author: "Natalia Bambrowicz, Piotr Czarniecki, Katarzyna Bohowicz, Karolina Gadomska"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+# Zbiór danych i Import
+```{r esz}
+względne_zarobki = c(1.22, 0.81, 0.8, 0.74)
+całkowity_dochód = c(10441.79, 6697.38, 6324.89, 6162.75)
+okres_szukania_pracy = c(1.36, 3.76, 1.55, 1.77)
+okres_bezrobocia = c(0.76, 3.89, 2.56, 3.07)
+względna_stopa_bezrobocia = c(0.54, 0.79, 0.61, 0.53)
+uczelnie = c("PW", "PWR", "PG", "PS")
+
+dane = data.frame(uczelnie, względna_stopa_bezrobocia, względne_zarobki, całkowity_dochód, okres_bezrobocia, okres_szukania_pracy)
+```
+## Sformułowane Pytania:
+### 1. Absolwenci której uczelni najszybciej znajdują pracę?
+### 2. Absolwenci której uczelni mają największe zarobki?
+### 3. Absolwenci której uczelni mają największy problem ze znalezieniem pracy?
+### 4. Czy absolwenci wszystkich uczelni zarabiają poniżej średniej krajowej?
+
+# Wyczyszczenie zbioru
+```{r b}
+dane_czyste <- dane 
+print("Dane są czyste. Brak niepotrzebnych kolumn/wierszy.")
+```
+# Badanie braków danych
+```{r c}
+braki <- colSums(is.na(dane_czyste))
+print("Liczba braków danych w każdej kolumnie:")
+print(braki)
+if (sum(braki) == 0) {
+  print("W zbiorze nie ma braków danych.")
+}
+```
+# Filtrowanie i Sortowanie
+
+## Która uczelnia najszybciej znajduje pracę?
+```{r d}
+najszybsze_zatrudnienie <- dane_czyste %>%
+  arrange(okres_szukania_pracy) %>%
+  head(1)
+cat("\n# 1. Absolwenci najszybciej znajdujący pracę (okres szukania):\n")
+print(najszybsze_zatrudnienie[, c("uczelnie", "okres_szukania_pracy")])
+```
+## Która uczelnia ma największe zarobki?
+```{r e}
+najwyzsze_zarobki <- dane_czyste %>%
+  arrange(desc(całkowity_dochód)) %>%
+  head(1)
+cat("\n# 2. Absolwenci z najwyższymi zarobkami:\n")
+print(najwyzsze_zarobki[, c("uczelnie", "całkowity_dochód")])
+```
+## Która uczelnia ma największy problem ze znalezieniem pracy?
+```{r f}
+najwiekszy_problem <- dane_czyste %>%
+  arrange(desc(okres_bezrobocia)) %>%
+  head(1)
+cat("\n# 3. Absolwenci z największym problemem (okres bezrobocia):\n")
+print(najwiekszy_problem[, c("uczelnie", "okres_bezrobocia")])
+```
+# Statystyki opisowe
+```{r g}
+srednia_dochodu <- mean(dane_czyste$całkowity_dochód)
+mediana_bezrobocia <- median(dane_czyste$okres_bezrobocia)
+odchylenie_wzgledna_stopa <- sd(dane_czyste$względna_stopa_bezrobocia)
+
+cat("\n# Statystyki Opisowe:\n")
+cat("Średnia całkowitych dochodów: ", round(srednia_dochodu, 2), " PLN\n")
+cat("Mediana okresu bezrobocia: ", round(mediana_bezrobocia, 2), " miesiąca\n")
+cat("Odchylenie standardowe względnej stopy bezrobocia: ", round(odchylenie_wzgledna_stopa, 3), "\n")
+```
+# Absolwenci których uczelni zarabiają powyżej, a którzy poniżej średniej krajowej?
+```{r h}
+wynik_zarobki <- dane_czyste %>%
+  filter(względne_zarobki < 1) %>%
+  select(uczelnie, względne_zarobki)
+
+cat("\n# 4. Absolwenci zarabiający poniżej średniej krajowej (względne zarobki < 1):\n")
+if (nrow(wynik_zarobki) > 0) {
+  print(wynik_zarobki)
+} else {
+  print("Absolwenci wszystkich uczelni zarabiają powyżej średniej krajowej.")
+}
+```
+
+# Wizualizacje
+
+# Wykres 1: Zarobki
+```{r wykres1, fig.width=10,fig.height=7}
+wykres_zarobki <- dane_czyste %>%
+  arrange(desc(całkowity_dochód)) %>%
+  ggplot(aes(x = reorder(uczelnie, całkowity_dochód), y = całkowity_dochód, fill = uczelnie)) +
+  geom_col() +
+  labs(
+    title = "Całkowity Dochód Absolwentów Matematyki (PLN)",
+    x = "Uczelnia",
+    y = "Dochód (PLN)"
+  ) +
+  theme_minimal()
+print(wykres_zarobki)
+```
+
+
+# Wykres 2: Okres szukania pracy
+```{r wykres2, fig.width=10,fig.height=7}
+wykres_szukanie_posortowany <- dane %>%
+  ggplot(aes(x = reorder(uczelnie, -okres_szukania_pracy), y = okres_szukania_pracy, fill = okres_szukania_pracy)) +
+  geom_col() +
+  scale_fill_gradient(low = "#90EE90", high = "#006400") + 
+  geom_text(aes(label = round(okres_szukania_pracy, 2)), vjust = -0.5, size = 4) +
+  labs(
+    title = "Średni Okres Szukania Pracy po Studiach (Miesiące)",
+    subtitle = "Sortowanie od najgorszego (najdłuższego) do najlepszego (najkrótszego)",
+    x = "Uczelnia",
+    y = "Okres szukania (miesiące)"
+  ) +
+  theme_bw() +
+  theme(legend.position = "none")
+print(wykres_szukanie_posortowany)
+```
+
+
+# Wykres 3: Okres bezrobocia
+```{r wykres3, fig.width=10.8,fig.height=7}
+dane_calkowity_czas <- dane %>%
+  mutate(Całkowity_Czas_Bez_Pracy = okres_bezrobocia + okres_szukania_pracy)
+
+wykres_lollipop_czas <- dane_calkowity_czas %>%
+  ggplot(aes(x = Całkowity_Czas_Bez_Pracy, y = reorder(uczelnie, Całkowity_Czas_Bez_Pracy))) +
+  geom_segment(aes(x = 0, xend = Całkowity_Czas_Bez_Pracy, yend = uczelnie), color = "skyblue", linewidth = 1.5) +
+  geom_point(aes(color = Całkowity_Czas_Bez_Pracy), size = 6) +
+  scale_color_gradient(low = "#1C7F8C", high = "#E74C3C") + 
+  geom_text(aes(label = round(Całkowity_Czas_Bez_Pracy, 2)), hjust = -0.5, size = 4) +
+  labs(
+    title = "Ranking Całkowitego Czasu Absolwentów Bez Stałej Pracy (Miesiące)",
+    subtitle = "Suma Okresu Szukania Pracy i Okresu Bezrobocia",
+    x = "Miesiące",
+    y = "Uczelnia"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+print(wykres_lollipop_czas)
+```
+
+# Wykres 4: Porównanie względnych zarobków do średniej krajowej
+```{r wykres4, fig.width=10,fig.height=7}
+wykres_wzgledne_zarobki <- dane_czyste %>%
+  ggplot(aes(x = uczelnie, y = względne_zarobki, fill = względne_zarobki > 1)) +
+  geom_col() +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red", size = 1) + 
+  scale_fill_manual(values = c("TRUE" = "darkgreen", "FALSE" = "orange")) +
+  labs(
+    title = "Względne Zarobki Absolwentów (Średnia Krajowa = 1)",
+    x = "Uczelnia",
+    y = "Względne Zarobki",
+    fill = "Powyżej Średniej Krajowej"
+  ) +
+  theme_light()
+print(wykres_wzgledne_zarobki)
+```
+
+# Wykres 5: Analiza Korelacji - Wpływ Stopy Bezrobocia na Zarobki
+```{r wykres5, fig.width=12,fig.height=7}
+
+srednia_stopa <- mean(dane$względna_stopa_bezrobocia)
+dane_odchylenie <- dane %>%
+  mutate(
+    Odchylenie_od_Sredniej = względna_stopa_bezrobocia - srednia_stopa,
+    Ocena = ifelse(Odchylenie_od_Sredniej < 0, "Poniżej Średniej (Lepiej)", "Powyżej Średniej (Gorzej)")
+  ) %>%
+  arrange(Odchylenie_od_Sredniej)
+
+wykres_rozbiezny_stopa <- dane_odchylenie %>%
+  ggplot(aes(x = reorder(uczelnie, Odchylenie_od_Sredniej), 
+             y = Odchylenie_od_Sredniej, 
+             fill = Ocena)) +
+  geom_col() +
+  scale_fill_manual(values = c("Poniżej Średniej (Lepiej)" = "#2ECC71", "Powyżej Średniej (Gorzej)" = "#E74C3C")) +
+  geom_text(aes(label = round(względna_stopa_bezrobocia, 2)), 
+            hjust = ifelse(dane_odchylenie$Odchylenie_od_Sredniej < 0, 1.2, -0.2), 
+            size = 4, fontface = "bold") +
+  labs(
+    title = "Odchylenie Względnej Stopy Bezrobocia od Średniej Grupowej",
+    subtitle = "Wartości na paskach to rzeczywista Względna Stopa Bezrobocia. Zielony = poniżej średniej (lepiej).",
+    x = "Uczelnia",
+    y = "Odchylenie od Średniej Grupowej"
+  ) +
+  theme_minimal() +
+  coord_flip()
+print(wykres_rozbiezny_stopa)
+```
