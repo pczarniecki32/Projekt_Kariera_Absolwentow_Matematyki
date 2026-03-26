@@ -9,7 +9,6 @@ Projekt zrealizowany w języku R w ramach pracy zespołowej na studiach. Projekt
 
 ## 🛠️ Zrealizowane kroki:
 * Zgromadzenie zbioru danych
-* Wyczyszczenie zbioru
 * Zbadanie braków danych
 * Filtrowanie i sortowanie
 * Stworzenie statystyk wizualnych
